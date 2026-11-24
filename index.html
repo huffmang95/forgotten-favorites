@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forgotten Favorites</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/*
+VOICE: warm, a little wistful, but a precise tool — flipping through an old mixtape shoebox.
+IDEA: a cassette J-card — red label band, a written track list, a tape counter of how long it's been.
+PICTURE: the #1 forgotten song with its rise-and-fade chart, then the ranked list; a dark "time machine" band below.
+COLOUR and TYPE: cassette-label red #d93a4f dominant, deep ink support, tape-gold #f2b632 accent; Archivo Black + Archivo.
+LAYOUT: red header with drop zone, hero song + chart, controls, list, time machine band, how-to.
+*/
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#16161f);--ink:light-dark(#1f2030,#ecebf2);--mute:light-dark(#62647a,#a3a3b8);--line:light-dark(#e6e4ec,#2c2c3a);--card:light-dark(#f6f5f9,#1e1e2a);--red:#d93a4f;--gold:#f2b632;--bar:light-dark(#d93a4f,#ff6b7d);--fade:light-dark(#c9c7d3,#4a4a5e);--night:light-dark(#1f2030,#0d0d14);--nink:#ecebf2}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Archivo,system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(28px,4vw,56px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+h1,h2,h3,.big{font-family:"Archivo Black",Archivo,sans-serif;font-weight:400;line-height:1.05;text-wrap:balance;margin:0}
+h1{font-size:clamp(32px,5vw,52px)}h2{font-size:clamp(22px,3vw,30px)}
+button{font:inherit;color:inherit}
+.top{background:var(--red);color:#fff}
+.top p{max-width:62ch;margin:10px 0 0;opacity:.92}
+.head{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;align-items:end}
+.drop{position:relative;display:block;color:#fff;font-size:16px;border:2px dashed rgba(255,255,255,.7);border-radius:14px;padding:18px;text-align:center;cursor:pointer;background:rgba(0,0,0,.08);transition:background .2s}
+.drop.on{background:rgba(0,0,0,.22)}
+.drop b{display:block;font-size:17px}.drop small{display:block;opacity:.85;margin-top:4px}
+.drop input{position:absolute;opacity:0;width:1px;height:1px}
+.status{font-size:14px;margin-top:10px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.link{background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;min-height:32px}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:clamp(20px,3vw,40px);align-items:center}
+.kick{font-size:14px;color:var(--mute);margin:0 0 8px}
+.hero .big{font-size:clamp(30px,4.4vw,48px);overflow-wrap:anywhere}
+.hero .art{font-size:19px;margin:8px 0 4px;color:var(--mute)}
+.hero .sub{font-size:14px;color:var(--mute);margin:0 0 14px}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.facts div{background:var(--card);border-radius:10px;padding:10px 12px}
+.facts span{display:block;font-size:13px;color:var(--mute)}
+.facts strong{font-size:18px;white-space:nowrap}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.fig{position:relative;min-height:300px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:999px;border:0;font:700 15px Archivo,sans-serif;cursor:pointer;text-decoration:none;background:var(--ink);color:var(--bg)}
+.btn.alt{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--line)}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.drop:focus-within{outline:3px solid var(--gold);outline-offset:2px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;border-top:1px solid var(--line);padding-top:18px}
+.seg{display:inline-flex;background:var(--card);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;min-height:40px;padding:0 14px;border-radius:999px;cursor:pointer;font-weight:500;color:var(--mute);white-space:nowrap}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.ctrl{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) minmax(0,1.3fr);gap:12px;align-items:end;border-bottom:1px solid var(--line);padding-block:14px 18px}
+label{font-size:13px;color:var(--mute);display:grid;gap:4px}
+input[type=number],input[type=search],select{font:16px Archivo,sans-serif;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%}
+select option:disabled{color:var(--mute)}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between;margin:16px 0 6px;color:var(--mute);font-size:14px}
+ol{list-style:none;margin:0;padding:0}
+li.row{display:grid;grid-template-columns:40px minmax(0,2fr) minmax(0,1.3fr) minmax(0,1.1fr) auto;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+li.row.hidden{opacity:.55}
+.rk{font-family:"Archivo Black";font-size:20px;color:var(--red);text-align:right}
+.tb{display:grid;text-align:left;background:none;border:0;padding:4px 0;cursor:pointer;min-height:44px;align-content:center}
+.tt{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb[aria-expanded=true] .tt{color:var(--red)}
+.ar{color:var(--mute);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nm{font-size:14px}.nm b{white-space:nowrap}.nm span{color:var(--mute);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp{height:34px;width:100%;display:block}
+.acts{display:flex;gap:4px}
+.ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--card);color:var(--ink);text-decoration:none;font-size:17px;border:0;cursor:pointer}
+.ib.on{background:var(--gold);color:#1f2030}
+.det{grid-column:1/-1;background:var(--card);border-radius:12px;padding:14px 16px;margin:2px 0 6px}
+.dstats{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:14px;color:var(--mute)}
+.dstats b{color:var(--ink);font-size:16px}
+.dh{font-weight:700;margin:12px 0 6px}
+.mini li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--line);font-size:15px}
+.mini i{color:var(--mute);font-style:normal;font-size:13px}.mini b{white-space:nowrap;font-weight:500}
+li.era{display:flex;align-items:baseline;gap:12px;padding:26px 0 6px;border-bottom:2px solid var(--ink)}
+li.era h3{font-size:22px}li.era span{color:var(--mute);font-size:14px}
+li.era .ec{margin-left:auto;min-height:40px;padding:0 14px;font-size:14px}
+@media(max-width:600px){li.era{flex-wrap:wrap}li.era .ec{margin-left:0}}
+.empty{padding:40px 0;color:var(--mute);text-align:center}
+.tmb{background:var(--night);color:var(--nink)}
+.tmb .note{color:#b3b3c6}
+.tmh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px}
+.tmlabel{font-size:clamp(34px,6vw,64px);color:var(--gold);white-space:nowrap}
+.tmc{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:10px;align-items:center;margin:18px 0 8px}
+.tmc .ib{background:#2c2c3a;color:var(--nink)}
+input[type=range]{width:100%;height:44px;accent-color:var(--gold);margin:0}
+.tml li{display:grid;grid-template-columns:28px minmax(0,1.3fr) minmax(0,1fr) 84px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid #2c2c3a}
+.tml .n{color:#b3b3c6;text-align:right}
+.tml b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tml span{color:#b3b3c6;font-size:14px}
+.tml em{font-style:normal;font-size:12px;background:var(--red);color:#fff;border-radius:999px;padding:1px 8px;margin-left:6px;white-space:nowrap}
+.tbar{height:10px;background:#2c2c3a;border-radius:5px;overflow:hidden}.tbar i{display:block;height:100%;background:var(--gold);border-radius:5px;transition:width .3s}
+.tml .v{text-align:right;white-space:nowrap;font-size:14px}
+.how{background:var(--card)}
+.how ol{list-style:decimal;padding-left:22px;max-width:70ch}.how li{margin:6px 0}
+.note{font-size:13px;color:var(--mute);margin-top:6px}
+.modal{position:fixed;inset:0;background:rgba(10,10,18,.75);display:grid;place-items:center;padding:16px;z-index:5}
+.modal[hidden]{display:none}
+.mbox{background:var(--bg);border-radius:16px;padding:16px;max-width:440px;width:100%;text-align:center}
+.mbox img{width:100%;border-radius:10px;display:block}
+.mbox p{font-size:14px;color:var(--mute)}
+.spc{margin-top:12px;font-size:14px;background:rgba(0,0,0,.12);border-radius:12px;padding:12px 14px}
+.spc summary{cursor:pointer;font-weight:700;min-height:32px;display:flex;align-items:center}
+.spc ol{list-style:decimal;padding-left:20px;margin:8px 0}.spc li{margin:4px 0}
+.spc a{color:#fff}
+.spc code{background:rgba(0,0,0,.25);padding:2px 6px;border-radius:6px;word-break:break-all}
+.spc .r{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.spc input{font:16px Archivo,sans-serif;min-height:44px;padding:0 12px;border-radius:10px;border:0;flex:1 1 200px;color:#1f2030;background:#fff}
+.spc .btn{background:#fff;color:#1f2030}
+.spc .mini-b{min-height:32px;padding:0 10px;font-size:13px;background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:999px;cursor:pointer}
+.res{display:grid;gap:6px;margin:8px 0;font-size:15px}.res:empty{display:none}
+.res div{background:var(--card);border-radius:10px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:space-between;align-items:center}
+.res a{color:var(--red);font-weight:700}
+.btn[disabled]{opacity:.5;cursor:wait}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:6}
+.toast.on{opacity:1}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media(max-width:960px){.ctrl{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:860px){.head,.hero{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){
+ .ctrl{grid-template-columns:repeat(2,minmax(0,1fr))}.ctrl .q{grid-column:1/-1}
+ li.row{grid-template-columns:30px minmax(0,1fr);row-gap:4px;column-gap:10px}
+ .rk{font-size:17px;align-self:start;padding-top:12px}.nm,.spw,.acts{grid-column:2}
+ .fig{min-height:240px}.facts strong{font-size:16px}
+ .tml li{grid-template-columns:22px minmax(0,1fr) 70px}.tml .tbar{grid-column:2/4;grid-row:2}
+}
+</style>
+</head>
+<body>
+<header class="band top">
+  <div class="wrap head">
+    <div>
+      <h1>Forgotten Favorites</h1>
+      <p>Songs you once played on repeat and then quietly stopped. Load your Spotify streaming history; it's processed and saved only in this browser, never uploaded. Connect Spotify to turn any era into a playlist.</p>
+    </div>
+    <div>
+      <label class="drop" id="drop">
+        <input type="file" id="file" multiple accept=".json,.zip,application/json,application/zip">
+        <b>Drop your Spotify files here</b>
+        <small>The .zip from Spotify, or the Streaming_History_Audio_*.json files inside it</small>
+      </label>
+      <div class="status"><span id="status">Loading…</span><button class="link" id="forget" type="button" hidden>Forget saved data</button></div>
+      <div class="spc" id="spc"></div>
+    </div>
+  </div>
+</header>
+
+<section class="band"><div class="wrap hero" id="hero"></div></section>
+
+<section class="band" style="padding-top:0">
+  <div class="wrap">
+    <div class="bar">
+      <div class="seg" data-set="tab" role="group" aria-label="What to rank"><button data-v="songs">Songs</button><button data-v="artists">Artists</button></div>
+      <div class="seg" data-set="mode" role="group" aria-label="Layout"><button data-v="rank">Ranked</button><button data-v="era">By era</button></div>
+      <div class="seg" data-set="show" role="group" aria-label="Show"><button data-v="all">All</button><button data-v="keep">★ Shortlist</button><button data-v="hidden">Hidden</button></div>
+    </div>
+    <div class="ctrl">
+      <label>Count
+        <select id="measure"><option value="plays">Plays (30s+)</option><option value="full">Full listens</option><option value="minutes">Minutes</option></select></label>
+      <label>Gone for at least
+        <select id="dorm"><option value="6">6 months</option><option value="12">1 year</option><option value="24">2 years</option><option value="36">3 years</option></select></label>
+      <label><span id="peakL">Best month had at least</span>
+        <input type="number" id="peak" min="1" inputmode="numeric"></label>
+      <label>Allow stray plays since
+        <input type="number" id="stray" min="0" inputmode="numeric"></label>
+      <label>Sort by
+        <select id="sort"><option value="score">Most forgotten</option><option value="peak">Biggest peak month</option><option value="total">Most plays ever</option><option value="gone">Longest gone</option></select></label>
+      <label class="q">Search
+        <input type="search" id="q" placeholder="Song or artist"></label>
+    </div>
+    <div class="meta"><span id="count"></span><button class="btn alt" id="copy" type="button">Copy for a playlist</button></div>
+    <div class="res" id="res" aria-live="polite"></div>
+    <ol id="list"></ol>
+  </div>
+</section>
+
+<section class="band tmb">
+  <div class="wrap">
+    <div class="tmh">
+      <div><h2>Time machine</h2><p class="note">Drag through your history to see what was on repeat each month. Songs you've since forgotten are tagged.</p></div>
+      <div class="big tmlabel" id="tmlabel"></div>
+    </div>
+    <div class="tmc"><button class="ib" id="tmprev" type="button" aria-label="Previous month">‹</button><input type="range" id="tm" aria-label="Month"><button class="ib" id="tmnext" type="button" aria-label="Next month">›</button></div>
+    <ol class="tml" id="tmlist"></ol>
+  </div>
+</section>
+
+<section class="band how">
+  <div class="wrap">
+    <h2>Getting your full history</h2>
+    <ol>
+      <li>Open Spotify's <b>Account → Privacy settings</b> page on the web and find <b>Download your data</b>.</li>
+      <li>Tick <b>Extended streaming history</b> (every play since your account began). The basic "Account data" export only covers about a year and has no skip data.</li>
+      <li>Confirm the email. Spotify says the extended export can take up to 30 days; it usually arrives sooner.</li>
+      <li>Drop the whole .zip above. It's saved in this browser, so next time it's already here.</li>
+    </ol>
+    <p class="note">A play counts at 30 seconds or more. A full listen is one Spotify marks as played to the end; a skip is one you skipped forward. "Now" is your most recent play in the files. Podcasts and videos are skipped. Spotify sign-in is only used to look up songs and create private playlists in your account; your history never leaves this browser.</p>
+  </div>
+</section>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-label="Share card">
+  <div class="mbox"><img id="shimg" alt="Share card for your most forgotten song"><p>Download it, or press and hold the image to save it.</p><div class="btns" style="justify-content:center"><a class="btn" id="mdl" download="forgotten-favorite.png" href="#">Download</a><button class="btn alt" id="mclose" type="button">Close</button></div></div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+{
+const $ = id => document.getElementById(id);
+const MIN_MS = 30000, MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const SEAS = ['Winter','Spring','Summer','Fall'], SOF = [0,0,1,1,1,2,2,2,3,3,3,0];
+const PK = { plays: 8, full: 6, minutes: 25 };
+const LS = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem('ff_' + k)); localStorage.setItem('ff_' + k, JSON.stringify(v)); } catch (e) { return null; } };
+
+let eraGroups = new Map(), D = null, view = [], songsRanked = [], forgot = new Set(), heroRow = null, open = null, tm = null;
+const st = Object.assign({ tab: 'songs', mode: 'rank', show: 'all', measure: 'plays', dorm: 12, peak: 8, stray: 1, sort: 'score' }, LS('st') || {});
+const keep = new Set(LS('keep') || []), hid = new Set(LS('hide') || []);
+
+const mIdx = t => { const d = new Date(t); return d.getUTCFullYear() * 12 + d.getUTCMonth(); };
+const mLabel = m => MO[m % 12] + ' ' + Math.floor(m / 12);
+const ago = n => n < 1 ? 'this month' : n < 12 ? n + ' mo ago' : Math.floor(n / 12) + ' yr' + (n % 12 ? ' ' + n % 12 + ' mo' : '') + ' ago';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const val = c => st.measure === 'minutes' ? c[2] / 60000 : st.measure === 'full' ? c[1] : c[0];
+const fmtV = v => st.measure === 'minutes' ? Math.round(v) + ' min' : v + (st.measure === 'full' ? ' full listen' : ' play') + (v === 1 ? '' : 's');
+const pct = x => Math.round(x * 100) + '%';
+const era = m => { const y = Math.floor(m / 12) + (m % 12 === 11 ? 1 : 0), s = SOF[m % 12]; return { k: y * 4 + s, l: SEAS[s] + ' ' + y }; };
+const link = e => e.u && e.u.startsWith('spotify:track:') ? 'https://open.spotify.com/track/' + e.u.slice(14) : 'https://open.spotify.com/search/' + encodeURIComponent(e.isA ? e.n : e.n + ' ' + e.a);
+const toast = msg => { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 1900); };
+
+/* ---------- storage (IndexedDB, best effort) ---------- */
+const idb = (mode, fn) => new Promise((res, rej) => {
+  try {
+    const r = indexedDB.open('forgotten-favorites', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => { const tx = r.result.transaction('kv', mode); const q = fn(tx.objectStore('kv')); tx.oncomplete = () => res(q && q.result); tx.onerror = () => rej(tx.error); };
+    r.onerror = () => rej(r.error);
+  } catch (e) { rej(e); }
+});
+const serialize = d => ({ v: 1, flags: d.flags, at: d.at, tracks: d.tracks.map(t => ({ k: t.k, n: t.n, a: t.a, u: t.u, m: [...t.m].map(([mo, c]) => [mo, ...c]) })) });
+const restore = s => finish({ flags: s.flags, at: s.at, sample: false, tracks: s.tracks.map(t => ({ k: t.k, n: t.n, a: t.a, u: t.u, m: new Map(t.m.map(x => [x[0], x.slice(1)])) })) });
+
+/* ---------- ingest ---------- */
+// per track, per month: [plays, full listens, ms played, skips]
+function build(records, sample) {
+  const map = new Map(); let flags = false;
+  for (const r of records) {
+    let name, artist, uri, ms, ts, full = 0, skip = 0;
+    if (r.ts !== undefined) {
+      name = r.master_metadata_track_name; artist = r.master_metadata_album_artist_name; uri = r.spotify_track_uri; ms = r.ms_played; ts = Date.parse(r.ts);
+      if (r.reason_end != null) { flags = true; full = r.reason_end === 'trackdone' ? 1 : 0; skip = (r.skipped === true || r.reason_end === 'fwdbtn') ? 1 : 0; }
+    } else if (r.endTime !== undefined) { name = r.trackName; artist = r.artistName; ms = r.msPlayed; ts = Date.parse(r.endTime.replace(' ', 'T') + 'Z'); }
+    else continue;
+    if (!name || !artist || !(ms >= MIN_MS) || isNaN(ts)) continue;
+    const key = uri || (artist + '|' + name).toLowerCase();
+    let t = map.get(key);
+    if (!t) { t = { k: key, n: name, a: artist, u: uri || '', m: new Map() }; map.set(key, t); }
+    const mo = mIdx(ts); let c = t.m.get(mo);
+    if (!c) { c = [0, 0, 0, 0]; t.m.set(mo, c); }
+    c[0]++; c[1] += full; c[2] += ms; c[3] += skip;
+  }
+  return finish({ tracks: [...map.values()], flags, sample, at: Date.now() });
+}
+function finish(d) {
+  let lo = Infinity, hi = -Infinity, plays = 0; const am = new Map();
+  for (const t of d.tracks) {
+    t.p = t.f = t.ms = t.s = 0; t.first = Infinity;
+    for (const [mo, c] of t.m) { t.p += c[0]; t.f += c[1]; t.ms += c[2]; t.s += c[3]; if (mo < t.first) t.first = mo; if (mo < lo) lo = mo; if (mo > hi) hi = mo; }
+    plays += t.p;
+    let a = am.get(t.a);
+    if (!a) { a = { k: 'artist:' + t.a.toLowerCase(), n: t.a, a: '', u: '', isA: 1, cnt: 0, p: 0, f: 0, ms: 0, s: 0, first: Infinity, m: new Map() }; am.set(t.a, a); }
+    a.cnt++; a.p += t.p; a.f += t.f; a.ms += t.ms; a.s += t.s; a.first = Math.min(a.first, t.first);
+    for (const [mo, c] of t.m) { let x = a.m.get(mo); if (!x) { x = [0, 0, 0, 0]; a.m.set(mo, x); } for (let i = 0; i < 4; i++) x[i] += c[i]; }
+  }
+  d.artists = [...am.values()]; d.minM = lo; d.maxM = hi; d.plays = plays;
+  return d;
+}
+
+/* ---------- analyse ---------- */
+function score(ents) {
+  const cut = D.maxM - st.dorm, out = [];
+  for (const e of ents) {
+    let peak = 0, peakM = 0, before = 0, since = 0, last = -1;
+    for (const [mo, c] of e.m) {
+      if (mo > cut) { since += c[0]; continue; }
+      const v = val(c); before += v;
+      if (v > peak) { peak = v; peakM = mo; }
+      if (c[0] && mo > last) last = mo;
+    }
+    if (last < 0 || peak < st.peak || since > st.stray) continue;
+    const gone = D.maxM - last;
+    out.push({ e, peak, peakM, before, gone, score: before * (1 + gone / 12) * (1 + peak / (PK[st.measure] * 2.5)) });
+  }
+  return out;
+}
+const sorter = k => (a, b) => k === 'peak' ? b.peak - a.peak : k === 'total' ? b.e.p - a.e.p : k === 'gone' ? b.gone - a.gone || b.score - a.score : b.score - a.score;
+
+function refresh() {
+  if (!D.flags && st.measure === 'full') st.measure = 'plays';
+  const songs = score(D.tracks);
+  songsRanked = songs.slice().sort(sorter('score'));
+  forgot = new Set(songs.map(r => r.e.k));
+  let list = st.tab === 'songs' ? songs : score(D.artists);
+  list = list.filter(r => st.show === 'keep' ? keep.has(r.e.k) : st.show === 'hidden' ? hid.has(r.e.k) : !hid.has(r.e.k));
+  const q = $('q').value.trim().toLowerCase();
+  if (q) list = list.filter(r => (r.e.n + ' ' + r.e.a).toLowerCase().includes(q));
+  view = list.sort(sorter(st.sort));
+  LS('st', st);
+  renderHero(); renderList(); renderTM(); syncControls(); updCopy();
+}
+function updCopy() {
+  const kn = D.tracks.filter(t => keep.has(t.k)).length, verb = connected() ? 'Create' : 'Copy', ne = bulkEras().length;
+  $('copy').textContent = st.mode === 'era' ? (connected() ? `Create ${ne} era playlist${ne === 1 ? '' : 's'}` : 'Copy every era as playlists') : kn ? `${verb} shortlist playlist (${kn})` : `${verb} top 50 as a playlist`;
+}
+
+/* ---------- list ---------- */
+function spark(e) {
+  const n = D.maxM - D.minM + 1; let mx = 0;
+  for (const c of e.m.values()) mx = Math.max(mx, val(c));
+  mx = mx || 1;
+  let d = 'M0 20';
+  for (let i = 0; i < n; i++) { const c = e.m.get(D.minM + i), y = 20 - (c ? val(c) : 0) / mx * 19; d += ` L${i} ${y} L${i + 1} ${y}`; }
+  return `<svg class="sp" viewBox="0 0 ${n} 20" preserveAspectRatio="none" aria-hidden="true"><path d="${d} L${n} 20 Z" fill="var(--bar)" opacity=".85"/></svg>`;
+}
+function details(r) {
+  const e = r.e;
+  let s = `<div class="det"><div class="dstats"><span><b>${e.p}</b> plays</span>` +
+    (D.flags ? `<span><b>${pct(e.f / e.p)}</b> finished</span><span><b>${pct(e.s / e.p)}</b> skipped</span>` : '') +
+    `<span><b>${Math.round(e.ms / 60000).toLocaleString()}</b> minutes</span><span>First heard <b>${mLabel(e.first)}</b></span></div>`;
+  if (e.isA) {
+    const top = D.tracks.filter(t => t.a === e.n).sort((a, b) => b.p - a.p).slice(0, 6);
+    s += `<p class="dh">Your most-played songs by ${esc(e.n)}</p><ol class="mini">${top.map(t => `<li><span>${esc(t.n)}</span><b>${t.p} plays</b></li>`).join('')}</ol>`;
+  } else {
+    const M = r.peakM, top = D.tracks.filter(t => t !== e && t.m.has(M)).map(t => [t, val(t.m.get(M))]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    s += `<p class="dh">Also on repeat in ${mLabel(M)}</p>` + (top.length ? `<ol class="mini">${top.map(([t, v]) => `<li><span>${esc(t.n)} <i>${esc(t.a)}</i></span><b>${fmtV(Math.round(v))}</b></li>`).join('')}</ol>` : '<p class="note">Nothing else that month.</p>');
+  }
+  return s + '</div>';
+}
+function row(r, i) {
+  const e = r.e, k = esc(e.k), isOpen = open === e.k, kept = keep.has(e.k), h = hid.has(e.k);
+  return `<li class="row${h ? ' hidden' : ''}" data-k="${k}"><div class="rk">${i + 1}</div>
+    <button class="tb" data-act="exp" aria-expanded="${isOpen}"><span class="tt">${esc(e.n)}</span><span class="ar">${e.isA ? e.cnt + ' song' + (e.cnt === 1 ? '' : 's') : esc(e.a)}</span></button>
+    <div class="nm"><b>${fmtV(Math.round(r.peak))} in ${mLabel(r.peakM)}</b><span>${e.p} plays total${D.flags ? ' · ' + pct(e.s / e.p) + ' skipped' : ''} · last ${ago(r.gone)}</span></div>
+    <div class="spw">${spark(e)}</div>
+    <div class="acts"><button class="ib${kept ? ' on' : ''}" data-act="keep" aria-pressed="${kept}" aria-label="${kept ? 'Remove from' : 'Add to'} shortlist">★</button><button class="ib" data-act="hide" aria-label="${h ? 'Unhide' : 'Hide'}">${h ? '↺' : '✕'}</button><a class="ib" href="${link(e)}" target="_blank" rel="noopener" aria-label="Open in Spotify">▶</a></div>
+    ${isOpen ? details(r) : ''}</li>`;
+}
+function renderList() {
+  const noun = st.tab === 'songs' ? 'song' : 'artist';
+  $('count').textContent = view.length ? `${view.length} ${st.show === 'keep' ? 'shortlisted' : st.show === 'hidden' ? 'hidden' : 'forgotten'} ${noun}${view.length === 1 ? '' : 's'} · history ${mLabel(D.minM)} – ${mLabel(D.maxM)}` : '';
+  const kn = D.tracks.filter(t => keep.has(t.k)).length;
+  if (!view.length) {
+    eraGroups = new Map();
+    $('list').innerHTML = `<li class="empty">${st.show === 'keep' ? 'Tap ★ on a song to add it to your shortlist.' : st.show === 'hidden' ? 'Nothing hidden.' : 'Nothing matches. Try a shorter "gone for" window or a lower best month.'}</li>`;
+    return;
+  }
+  if (st.mode === 'era') {
+    const g = new Map();
+    for (const r of view) { const E = era(r.peakM); if (!g.has(E.k)) g.set(E.k, { l: E.l, rs: [] }); g.get(E.k).rs.push(r); }
+    eraGroups = new Map([...g].sort((a, b) => b[0] - a[0]));
+    $('list').innerHTML = [...eraGroups].map(([k, G]) =>
+      `<li class="era"><h3>${G.l}</h3><span>${G.rs.length} ${noun}${G.rs.length === 1 ? '' : 's'} peaked</span><button class="btn alt ec" type="button" data-era="${k}">${connected() ? 'Create playlist' : 'Copy as playlist'}</button></li>` + G.rs.map(row).join('')).join('');
+  } else $('list').innerHTML = view.slice(0, 300).map(row).join('');
+}
+
+/* ---------- hero ---------- */
+const ro = new ResizeObserver(() => draw());
+function renderHero() {
+  const r = heroRow = view[0];
+  const kick = st.show === 'keep' ? 'Top of your shortlist' : `Your most forgotten ${st.tab === 'songs' ? 'song' : 'artist'}`;
+  if (!r) { $('hero').innerHTML = `<div><p class="kick">${kick}</p><div class="big">Nothing yet</div></div><div></div>`; return; }
+  const e = r.e;
+  $('hero').innerHTML = `<div>
+      <p class="kick">${kick}</p>
+      <div class="big">${esc(e.n)}</div>
+      <div class="art">${e.isA ? e.cnt + (e.cnt === 1 ? ' song' : ' songs') + ' in your history' : esc(e.a)}</div>
+      <p class="sub">${D.flags ? `Finished ${pct(e.f / e.p)} of plays · skipped ${pct(e.s / e.p)} · ` : ''}${Math.round(e.ms / 60000).toLocaleString()} minutes in all</p>
+      <div class="facts"><div><span>Best month</span><strong>${fmtV(Math.round(r.peak))}</strong></div>
+        <div><span>All-time plays</span><strong>${e.p}</strong></div>
+        <div><span>Last heard</span><strong>${ago(r.gone)}</strong></div></div>
+      <div class="btns"><a class="btn" href="${link(e)}" target="_blank" rel="noopener">▶ Play it again</a><button class="btn alt" id="share" type="button">Make a share card</button></div>
+    </div>
+    <div><div class="fig"><svg id="chart" role="img" aria-label="Monthly ${st.measure} for ${esc(e.n)}"></svg></div>
+    <p class="note">${st.measure === 'minutes' ? 'Minutes' : st.measure === 'full' ? 'Full listens' : 'Plays'} per month across your history. Gold is the peak, ${mLabel(r.peakM)}; grey is the last ${st.dorm} months.</p></div>`;
+  $('share').addEventListener('click', shareCard);
+  ro.disconnect(); ro.observe($('chart')); draw();
+}
+function draw() {
+  const s = $('chart'); if (!s || !heroRow) return;
+  const W = s.clientWidth, H = s.clientHeight; if (!W || !H) return;
+  const e = heroRow.e, n = D.maxM - D.minM + 1, pb = 26, pt = 18, pl = 34;
+  let mx = 0; for (const c of e.m.values()) mx = Math.max(mx, val(c)); mx = Math.max(1, Math.ceil(mx));
+  const bw = (W - pl) / n, ch = H - pb - pt, cut = D.maxM - st.dorm;
+  let out = `<rect x="${pl + (cut + 1 - D.minM) * bw}" y="${pt}" width="${(D.maxM - cut) * bw}" height="${ch}" fill="var(--card)"/>`;
+  for (const g of [0, Math.round(mx / 2), mx]) {
+    const y = pt + ch - g / mx * ch;
+    out += `<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="var(--line)"/>`;
+    if (W > 380 || g === mx) out += `<text x="${pl - 6}" y="${y + 4}" text-anchor="end" font-size="12" fill="var(--mute)">${g}</text>`;
+  }
+  for (let i = 0; i < n; i++) {
+    const m = D.minM + i, c = e.m.get(m), v = c ? val(c) : 0; if (!v) continue;
+    const h = v / mx * ch;
+    out += `<rect x="${pl + i * bw + bw * .1}" y="${pt + ch - h}" width="${Math.max(1, bw * .8)}" height="${h}" rx="${Math.min(2, bw / 4)}" fill="${m === heroRow.peakM ? 'var(--gold)' : m > cut ? 'var(--fade)' : 'var(--bar)'}"/>`;
+  }
+  const step = W < 520 ? 24 : 12;
+  for (let m = D.minM; m <= D.maxM; m++) if (m % step === 0) out += `<text x="${pl + (m - D.minM) * bw}" y="${H - 6}" font-size="12" fill="var(--mute)">${step === 24 ? "'" + String(Math.floor(m / 12)).slice(2) : Math.floor(m / 12)}</text>`;
+  s.innerHTML = out;
+}
+
+/* ---------- time machine ---------- */
+function renderTM() {
+  const s = $('tm');
+  s.min = D.minM; s.max = D.maxM;
+  if (tm == null || tm < D.minM || tm > D.maxM) tm = songsRanked[0] ? songsRanked[0].peakM : Math.max(D.minM, D.maxM - 24);
+  s.value = tm;
+  $('tmlabel').textContent = mLabel(tm);
+  const rows = [];
+  for (const t of D.tracks) { const c = t.m.get(tm); if (c && val(c) > 0) rows.push([t, val(c)]); }
+  rows.sort((a, b) => b[1] - a[1]);
+  const mx = rows[0] ? rows[0][1] : 1;
+  $('tmlist').innerHTML = rows.length ? rows.slice(0, 10).map(([t, v], i) =>
+    `<li><span class="n">${i + 1}</span><div><b>${esc(t.n)}</b><span>${esc(t.a)}</span>${forgot.has(t.k) ? '<em>forgotten</em>' : ''}</div><div class="tbar"><i style="width:${v / mx * 100}%"></i></div><div class="v">${fmtV(Math.round(v))}</div></li>`).join('')
+    : '<li class="empty" style="display:block">No plays this month.</li>';
+}
+
+/* ---------- share card ---------- */
+function wrapText(x, text, X, y, maxW, lh, maxLines) {
+  const words = text.split(/\s+/); let line = '', lines = [];
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (x.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
+  lines.push(line);
+  if (lines.length > maxLines) { lines = lines.slice(0, maxLines); let l = lines[maxLines - 1]; while (x.measureText(l + '…').width > maxW && l.length) l = l.slice(0, -1); lines[maxLines - 1] = l + '…'; }
+  lines.forEach((l, i) => x.fillText(l, X, y + i * lh));
+  return y + (lines.length - 1) * lh;
+}
+async function shareCard() {
+  const r = heroRow; if (!r) return;
+  try { await Promise.all([document.fonts.load('90px "Archivo Black"'), document.fonts.load('500 40px Archivo')]); } catch (e) {}
+  const c = document.createElement('canvas'); c.width = 1080; c.height = 1350;
+  const x = c.getContext('2d'), e = r.e;
+  x.fillStyle = '#d93a4f'; x.fillRect(0, 0, 1080, 1350);
+  x.fillStyle = 'rgba(0,0,0,.12)'; x.fillRect(0, 1180, 1080, 170);
+  x.fillStyle = '#fff'; x.font = '500 40px Archivo, sans-serif';
+  x.fillText(`My most forgotten ${e.isA ? 'artist' : 'song'}`, 80, 140);
+  x.font = '92px "Archivo Black", sans-serif';
+  let y = wrapText(x, e.n, 80, 270, 920, 100, 3);
+  x.font = '500 46px Archivo, sans-serif'; x.globalAlpha = .9;
+  wrapText(x, e.isA ? e.cnt + (e.cnt === 1 ? ' song' : ' songs') + ' in my history' : e.a, 80, y + 80, 920, 54, 1); x.globalAlpha = 1;
+  const stats = [['Best month', fmtV(Math.round(r.peak)) + ', ' + mLabel(r.peakM)], ['All-time plays', String(e.p)], ['Last heard', ago(r.gone)]];
+  stats.forEach(([l, v], i) => { x.font = '500 30px Archivo, sans-serif'; x.globalAlpha = .8; x.fillText(l, 80, 620 + i * 90); x.globalAlpha = 1; x.font = '44px "Archivo Black", sans-serif'; x.fillText(v, 80, 666 + i * 90); });
+  const n = D.maxM - D.minM + 1, bw = 920 / n, top = 900, ch = 230, cut = D.maxM - st.dorm;
+  let mx = 0; for (const cc of e.m.values()) mx = Math.max(mx, val(cc)); mx = mx || 1;
+  for (let i = 0; i < n; i++) {
+    const m = D.minM + i, cc = e.m.get(m), v = cc ? val(cc) : 0; if (!v) continue;
+    const h = v / mx * ch;
+    x.fillStyle = m === r.peakM ? '#f2b632' : m > cut ? 'rgba(255,255,255,.35)' : '#fff';
+    x.fillRect(80 + i * bw + bw * .1, top + ch - h, Math.max(2, bw * .8), h);
+  }
+  x.font = '500 26px Archivo, sans-serif'; x.fillStyle = 'rgba(255,255,255,.85)';
+  x.fillText(String(Math.floor(D.minM / 12)), 80, top + ch + 40);
+  x.textAlign = 'right'; x.fillText(String(Math.floor(D.maxM / 12)), 1000, top + ch + 40);
+  x.textAlign = 'left'; x.fillStyle = '#fff'; x.font = '40px "Archivo Black", sans-serif';
+  x.fillText('Forgotten Favorites', 80, 1280);
+  $('shimg').src = $('mdl').href = c.toDataURL('image/png');
+  $('modal').hidden = false; $('mclose').focus();
+}
+
+/* ---------- controls ---------- */
+function syncControls() {
+  document.querySelectorAll('.seg').forEach(g => g.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', st[g.dataset.set] === b.dataset.v)));
+  const fo = $('measure').querySelector('[value=full]');
+  fo.disabled = !D.flags; fo.textContent = D.flags ? 'Full listens' : 'Full listens (needs extended export)';
+  $('measure').value = st.measure; $('dorm').value = st.dorm; $('sort').value = st.sort;
+  if (document.activeElement !== $('peak')) $('peak').value = st.peak;
+  if (document.activeElement !== $('stray')) $('stray').value = st.stray;
+  $('peakL').textContent = `Best month had at least (${st.measure === 'minutes' ? 'min' : st.measure === 'full' ? 'full listens' : 'plays'})`;
+}
+document.querySelectorAll('.seg').forEach(g => g.addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  st[g.dataset.set] = b.dataset.v; open = null; refresh();
+}));
+$('measure').addEventListener('change', () => { st.measure = $('measure').value; st.peak = PK[st.measure]; refresh(); });
+$('dorm').addEventListener('change', () => { st.dorm = +$('dorm').value; refresh(); });
+$('sort').addEventListener('change', () => { st.sort = $('sort').value; refresh(); });
+$('peak').addEventListener('input', () => { const v = +$('peak').value; if (v >= 1) { st.peak = v; refresh(); } });
+$('stray').addEventListener('input', () => { const v = +$('stray').value; if (v >= 0 && $('stray').value !== '') { st.stray = v; refresh(); } });
+$('q').addEventListener('input', refresh);
+
+const songsOf = r => r.e.isA ? D.tracks.filter(t => t.a === r.e.n).sort((a, b) => b.p - a.p).slice(0, 5) : [r.e];
+const eraSongs = G => { const seen = new Set(), out = []; for (const r of G.rs) for (const t of songsOf(r)) if (!seen.has(t.k) && !hid.has(t.k)) { seen.add(t.k); out.push(t); } return out; };
+const lines = list => list.map((t, i) => `${i + 1}. ${t.a} – ${t.n}`).join('\n');
+async function copyText(txt, msg) { try { await navigator.clipboard.writeText(txt); toast(msg); } catch (e) { toast('Copy was blocked by the browser'); } }
+$('list').addEventListener('click', ev => {
+  const eb = ev.target.closest('[data-era]');
+  if (eb) {
+    const G = eraGroups.get(+eb.dataset.era); if (!G) return;
+    const list = eraSongs(G);
+    if (connected()) { makeAll([[`Forgotten Favorites: ${G.l}`, list, `Songs I had on repeat in ${G.l}, then forgot.`]]); return; }
+    copyText(`Make a Spotify playlist called "Forgotten Favorites: ${G.l}" with these songs:\n` + lines(list), `Copied ${G.l} (${list.length} songs). Paste it to Claude.`);
+    return;
+  }
+  const b = ev.target.closest('[data-act]'); if (!b) return;
+  const k = b.closest('[data-k]').dataset.k, a = b.dataset.act;
+  if (a === 'exp') { open = open === k ? null : k; renderList(); return; }
+  if (a === 'keep') { keep.has(k) ? keep.delete(k) : (keep.add(k), hid.delete(k)); toast(keep.has(k) ? 'Added to shortlist' : 'Removed from shortlist'); }
+  if (a === 'hide') { hid.has(k) ? hid.delete(k) : (hid.add(k), keep.delete(k)); toast(hid.has(k) ? 'Hidden' : 'Back in the list'); }
+  LS('keep', [...keep]); LS('hide', [...hid]); refresh();
+});
+
+$('copy').addEventListener('click', async () => {
+  if (st.mode === 'era' && connected()) {
+    const eras = bulkEras();
+    if (!eras.length) { toast('No eras to create'); return; }
+    makeAll(eras.map(([l, list]) => [`Forgotten Favorites: ${l}`, list, `Songs I had on repeat in ${l}, then forgot.`]));
+    return;
+  }
+  if (st.mode === 'era') {
+    const eras = [...eraGroups.values()].map(G => [G.l, eraSongs(G)]).filter(x => x[1].length);
+    if (!eras.length) { toast('No eras to copy'); return; }
+    const txt = `Make ${eras.length} Spotify playlist${eras.length === 1 ? '' : 's'}, one per era, with these songs:\n\n` +
+      eras.map(([l, list]) => `Playlist "Forgotten Favorites: ${l}"\n` + lines(list)).join('\n\n');
+    copyText(txt, `Copied ${eras.length} eras. Paste them to Claude.`);
+    return;
+  }
+  let list = D.tracks.filter(t => keep.has(t.k)); const kn2 = list.length;
+  if (!list.length) list = songsRanked.filter(r => !hid.has(r.e.k)).slice(0, 50).map(r => r.e);
+  if (!list.length) { toast('No songs to copy'); return; }
+  if (connected()) { makeAll([[kn2 ? 'Forgotten Favorites: Shortlist' : 'Forgotten Favorites', list, 'Songs I used to play on repeat, then forgot.']]); return; }
+  const txt = 'Make a Spotify playlist called "Forgotten Favorites" with these songs:\n' + list.map((t, i) => `${i + 1}. ${t.a} – ${t.n}`).join('\n');
+  try { await navigator.clipboard.writeText(txt); toast(`Copied ${list.length} songs. Paste them to Claude.`); } catch (e) { toast('Copy was blocked by the browser'); }
+});
+
+$('tm').addEventListener('input', () => { tm = +$('tm').value; renderTM(); });
+$('tmprev').addEventListener('click', () => { if (tm > D.minM) { tm--; renderTM(); } });
+$('tmnext').addEventListener('click', () => { if (tm < D.maxM) { tm++; renderTM(); } });
+$('mclose').addEventListener('click', () => { $('modal').hidden = true; });
+$('modal').addEventListener('click', ev => { if (ev.target === $('modal')) $('modal').hidden = true; });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') $('modal').hidden = true; });
+
+/* ---------- Spotify (PKCE sign-in, search, playlists) ---------- */
+const REDIRECT = location.origin + location.pathname;
+const SCOPES = 'playlist-modify-private playlist-modify-public';
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const connected = () => !!(LS('tok') && LS('tok').r);
+const bulkEras = () => { const all = [...eraGroups.values()].map(G => [G.l, eraSongs(G)]).filter(x => x[1].length), big = all.filter(x => x[1].length >= 3); return big.length ? big : all; };
+const uriCache = new Map(Object.entries(LS('uris') || {}));
+let busy = false;
+
+function renderSpotify() {
+  const cid = LS('cid') || '';
+  if (connected()) {
+    $('spc').innerHTML = `<div class="r" style="margin:0;align-items:center"><span>✓ Spotify connected. Playlist buttons now create playlists.</span><button class="mini-b" id="spout" type="button">Disconnect</button></div>`;
+    $('spout').onclick = () => { LS('tok', null); renderSpotify(); refresh(); toast('Disconnected from Spotify'); };
+    return;
+  }
+  $('spc').innerHTML = `<details ${cid ? '' : 'open'}><summary>${cid ? 'Spotify setup' : 'Connect Spotify to create playlists (one-time setup)'}</summary>
+    <ol><li>Open the <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Spotify Developer Dashboard</a> and create an app (needs Premium).</li>
+    <li>Add this Redirect URI exactly: <code id="ruri">${esc(REDIRECT)}</code> <button class="mini-b" id="rcopy" type="button">Copy</button></li>
+    <li>Tick <b>Web API</b>, save, and copy the app's Client ID.</li>
+    <li>Paste it here:</li></ol>
+    <div class="r"><input id="cid" placeholder="Client ID" autocomplete="off" spellcheck="false" value="${esc(cid)}"></div></details>
+    <div class="r"><button class="btn" id="spin" type="button">Connect Spotify</button></div>`;
+  $('rcopy').onclick = () => copyText(REDIRECT, 'Redirect URI copied');
+  $('spin').onclick = login;
+}
+async function login() {
+  const cid = ($('cid') ? $('cid').value : LS('cid') || '').trim();
+  if (!/^[0-9a-f]{32}$/i.test(cid)) { toast('Paste the 32-character Client ID first'); const d = $('spc').querySelector('details'); if (d) d.open = true; return; }
+  LS('cid', cid);
+  const ver = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const ch = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ver)));
+  const state = b64url(crypto.getRandomValues(new Uint8Array(12)));
+  LS('ver', ver); LS('state', state);
+  location.href = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({ client_id: cid, response_type: 'code', redirect_uri: REDIRECT, code_challenge_method: 'S256', code_challenge: ch, scope: SCOPES, state });
+}
+function saveTok(j) { const old = LS('tok') || {}; LS('tok', { a: j.access_token, r: j.refresh_token || old.r, x: Date.now() + (j.expires_in - 60) * 1000 }); }
+async function tokenCall(params) {
+  const r = await fetch('https://accounts.spotify.com/api/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(params) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error_description || j.error || 'Spotify sign-in failed');
+  saveTok(j);
+}
+async function handleRedirect() {
+  const p = new URLSearchParams(location.search);
+  if (!p.has('code') && !p.has('error')) return;
+  history.replaceState(null, '', location.pathname);
+  if (p.get('error')) { toast(p.get('error') === 'access_denied' ? 'Spotify sign-in was cancelled' : 'Spotify sign-in failed: ' + p.get('error')); return; }
+  if (p.get('state') !== LS('state')) { toast('Sign-in check failed. Try connecting again.'); return; }
+  try { await tokenCall({ client_id: LS('cid'), grant_type: 'authorization_code', code: p.get('code'), redirect_uri: REDIRECT, code_verifier: LS('ver') }); toast('Spotify connected'); }
+  catch (e) { toast(e.message); }
+}
+async function token() {
+  const t = LS('tok'); if (!t || !t.r) throw new Error('Connect Spotify first');
+  if (Date.now() < t.x) return t.a;
+  try { await tokenCall({ client_id: LS('cid'), grant_type: 'refresh_token', refresh_token: t.r }); }
+  catch (e) { LS('tok', null); renderSpotify(); throw new Error('Spotify sign-in expired. Connect again.'); }
+  return LS('tok').a;
+}
+async function api(path, opt = {}) {
+  for (let tries = 0; tries < 5; tries++) {
+    const r = await fetch('https://api.spotify.com/v1' + path, { ...opt, headers: { Authorization: 'Bearer ' + await token(), 'Content-Type': 'application/json' } });
+    if (r.status === 429) { await sleep(((+r.headers.get('Retry-After')) || 3) * 1000); continue; }
+    if (r.status === 401 && tries === 0) { const t = LS('tok'); t.x = 0; LS('tok', t); continue; }
+    const j = r.status === 204 ? {} : await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(r.status === 403 ? 'Spotify refused (403). Check the app is yours and your account is Premium.' : (j.error && j.error.message) || 'Spotify error ' + r.status);
+    return j;
+  }
+  throw new Error('Spotify is rate-limiting. Try again in a minute.');
+}
+const norm = s => s.toLowerCase().replace(/\s*[-(\[].*?(remaster|version|edit|mix|live|feat).*$/i, '').replace(/[^a-z0-9]+/g, ' ').trim();
+async function resolve(t) {
+  if (t.u && t.u.startsWith('spotify:track:')) return t.u;
+  if (uriCache.has(t.k)) return uriCache.get(t.k) || null;
+  const q1 = `track:"${t.n.replace(/"/g, '')}" artist:"${t.a.replace(/"/g, '')}"`;
+  let items = ((await api('/search?' + new URLSearchParams({ q: q1, type: 'track', limit: '5' }))).tracks || {}).items || [];
+  if (!items.length) items = ((await api('/search?' + new URLSearchParams({ q: t.n + ' ' + t.a, type: 'track', limit: '5' }))).tracks || {}).items || [];
+  const art = x => x.artists.some(a => a.name.toLowerCase() === t.a.toLowerCase());
+  const pick = items.find(x => art(x) && norm(x.name) === norm(t.n)) || items.find(art) || null;
+  const u = pick ? pick.uri : '';
+  uriCache.set(t.k, u); LS('uris', Object.fromEntries(uriCache));
+  return u || null;
+}
+async function makePlaylist(name, list, desc, label) {
+  const uris = [], missing = [];
+  for (let i = 0; i < list.length; i++) {
+    toast(`${label}finding songs ${i + 1}/${list.length}…`);
+    const u = await resolve(list[i]);
+    u ? uris.includes(u) || uris.push(u) : missing.push(list[i]);
+  }
+  if (!uris.length) throw new Error(`Couldn't find any songs for "${name}" on Spotify`);
+  const pl = await api('/me/playlists', { method: 'POST', body: JSON.stringify({ name, description: desc + ' Made with Forgotten Favorites.', public: false }) });
+  for (let i = 0; i < uris.length; i += 100) await api(`/playlists/${pl.id}/items`, { method: 'POST', body: JSON.stringify({ uris: uris.slice(i, i + 100) }) });
+  return { name, url: (pl.external_urls || {}).spotify || 'https://open.spotify.com/playlist/' + pl.id, n: uris.length, missing };
+}
+async function makeAll(jobs) {
+  if (busy) { toast('Already working on it…'); return; }
+  busy = true; $('copy').disabled = true; $('res').innerHTML = '';
+  let made = 0;
+  for (let j = 0; j < jobs.length; j++) {
+    const [name, list, desc] = jobs[j];
+    try {
+      const r = await makePlaylist(name, list, desc, jobs.length > 1 ? `${j + 1}/${jobs.length}: ` : '');
+      made++;
+      $('res').insertAdjacentHTML('beforeend', `<div><span>Created <b>${esc(r.name)}</b> with ${r.n} song${r.n === 1 ? '' : 's'}${r.missing.length ? ` · ${r.missing.length} not found on Spotify` : ''}</span><a href="${esc(r.url)}" target="_blank" rel="noopener">Open in Spotify</a></div>`);
+    } catch (e) {
+      $('res').insertAdjacentHTML('beforeend', `<div><span>${esc(name)}: ${esc(e.message)}</span></div>`);
+      if (/Connect|expired|403/.test(e.message)) break;
+    }
+  }
+  busy = false; $('copy').disabled = false;
+  toast(made ? `Created ${made} playlist${made === 1 ? '' : 's'}` : 'No playlists created');
+  $('res').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ---------- files ---------- */
+function setStatus(extra) {
+  $('forget').hidden = D.sample;
+  $('status').textContent = D.sample ? 'Showing sample listening history (invented songs) until you load your own.'
+    : `Your history: ${D.plays.toLocaleString()} plays of ${D.tracks.length.toLocaleString()} songs, ${mLabel(D.minM)} – ${mLabel(D.maxM)}.` + (extra || ' Saved in this browser.');
+}
+async function readFiles(files) {
+  $('status').textContent = 'Reading…';
+  const recs = [];
+  const take = (name, text) => {
+    if (!/\.json$/i.test(name) || /video/i.test(name)) return;
+    try { const j = JSON.parse(text); if (Array.isArray(j)) recs.push(...j); } catch (e) {}
+  };
+  try {
+    for (const f of files) {
+      if (/\.zip$/i.test(f.name)) {
+        if (!window.JSZip) { $('status').textContent = "Zip support didn't load; unzip and pick the .json files instead."; return; }
+        const z = await JSZip.loadAsync(f);
+        for (const en of Object.values(z.files)) if (!en.dir && /Streaming_?History/i.test(en.name)) take(en.name, await en.async('string'));
+      } else take(f.name, await f.text());
+    }
+  } catch (e) { $('status').textContent = "Couldn't read that file."; return; }
+  const d = build(recs, false);
+  if (!d.tracks.length) { setStatus(); $('status').textContent = 'No song plays found in those files. ' + $('status').textContent; return; }
+  D = d; tm = null; open = null;
+  if (!D.flags && st.measure === 'full') { st.measure = 'plays'; st.peak = PK.plays; }
+  let saved = true;
+  try { await idb('readwrite', s => s.put(serialize(D), 'hist')); } catch (e) { saved = false; }
+  setStatus(saved ? ' Saved in this browser.' : " Couldn't save it here, so you'll need to load it again next time.");
+  refresh();
+}
+const drop = $('drop');
+$('file').addEventListener('change', ev => ev.target.files.length && readFiles([...ev.target.files]));
+['dragenter', 'dragover'].forEach(n => drop.addEventListener(n, ev => { ev.preventDefault(); drop.classList.add('on'); }));
+['dragleave', 'drop'].forEach(n => drop.addEventListener(n, ev => { ev.preventDefault(); drop.classList.remove('on'); }));
+drop.addEventListener('drop', ev => ev.dataTransfer.files.length && readFiles([...ev.dataTransfer.files]));
+$('forget').addEventListener('click', async () => {
+  try { await idb('readwrite', s => s.delete('hist')); } catch (e) {}
+  D = build(sample(), true); tm = null; open = null; setStatus(); refresh(); toast('Saved history removed');
+});
+
+/* ---------- sample data (invented songs) ---------- */
+function sample() {
+  let seed = 7; const rnd = () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const start = 2016 * 12, end = 2026 * 12 + 10;
+  // name, artist, peak start (months from Jan 2016), length, intensity, tail plays/month, skip chance
+  const S = [
+    ['Glass Pool Summer', 'Mara Okafor', 30, 5, 46, 0, .05], ['Paper Lanterns', 'The Velvet Commute', 8, 8, 32, .05, .08],
+    ['Static Hearts', 'Northbound Static', 52, 4, 40, 0, .06], ['Halogen', 'Juno Park', 18, 10, 24, .1, .1],
+    ['Slow Burn Avenue', 'The Late Arrivals', 64, 6, 30, 0, .04], ['Pocket Moon', 'Ivy & the Ferns', 40, 7, 22, .05, .07],
+    ['Tidewater', 'Sol Cadet', 74, 4, 36, 0, .05], ['Neon Orchard', 'Bellwether Kids', 2, 12, 20, .02, .12],
+    ['Runaway Signal', 'Ghost Coast', 86, 5, 28, 0, .06], ['Coffee at Midnight', 'Rae Lindqvist', 58, 9, 16, 0, .05],
+    ['Hollow Bones', 'Copperline', 24, 6, 18, .04, .09], ['Lemonade Fuse', 'Kid Weather', 96, 3, 26, 0, .05],
+    ['Elevator Sunrise', 'Lo-Fi Commuters', 44, 8, 38, 0, .7], ['Second Static', 'Northbound Static', 56, 5, 18, 0, .1],
+    ['Daylight Again', 'Harbor Lights', 10, 120, 6, 6, .05], ['Still Water', 'Elle Navarro', 36, 90, 5, 4, .05],
+    ['Open Window', 'Kid Weather', 118, 10, 30, 30, .05]
+  ];
+  const recs = [];
+  for (let m = start; m <= end; m++) for (const [name, artist, ps, len, k, tail, sk] of S) {
+    const rel = m - start; let lam;
+    if (rel < ps) lam = rel > ps - 3 ? k * .25 : 0;
+    else if (rel < ps + len) lam = k * (.7 + .6 * Math.sin(Math.PI * (rel - ps) / len));
+    else lam = tail + k * .4 * Math.exp(-(rel - ps - len) / 2);
+    const n = Math.round(lam * (.7 + rnd() * .6));
+    for (let i = 0; i < n; i++) {
+      const d = new Date(Date.UTC(Math.floor(m / 12), m % 12, 1 + Math.floor(rnd() * 27), Math.floor(rnd() * 24)));
+      const roll = rnd(), skip = roll < sk, short = !skip && roll < sk + .08;
+      recs.push({ ts: d.toISOString(), ms_played: skip ? 30000 + rnd() * 60000 : short ? 9000 : 170000 + rnd() * 70000,
+        master_metadata_track_name: name, master_metadata_album_artist_name: artist, spotify_track_uri: null,
+        reason_end: skip ? 'fwdbtn' : short ? 'endplay' : 'trackdone', skipped: skip });
+    }
+  }
+  return recs;
+}
+
+/* ---------- start ---------- */
+(async () => {
+  let saved = null;
+  try { saved = await idb('readonly', s => s.get('hist')); } catch (e) {}
+  try { D = saved && saved.tracks ? restore(saved) : null; } catch (e) { D = null; }
+  if (!D || !D.tracks.length) D = build(sample(), true);
+  await handleRedirect();
+  renderSpotify(); setStatus(); refresh();
+})();
+}
+</script>
+</body>
+</html>
